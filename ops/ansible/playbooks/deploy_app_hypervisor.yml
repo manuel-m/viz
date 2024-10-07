@@ -1,0 +1,94 @@
+---
+- name: Deploy dashboard
+  hosts: hypervisor
+  tasks:
+    - include_tasks: "../tasks/variables.yml"
+
+    - name: Install required packages
+      become: yes
+      apt:
+        name: libvirt-dev,python3-libvirt,python3-venv,python3-pip
+        state: latest
+        update_cache: yes
+
+    - name: Build pipx list
+      command: pipx list
+      register: pipx_list
+      ignore_errors: true
+
+    - name: Ensure application directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/dist"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure package source directory exists
+      ansible.builtin.file:
+        path: "{{ packages_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Delete virtual environment folder
+      file:
+        path: "{{ venv_dir }}"
+        state: absent
+
+    #- name: Ensure virtualenv directory exists
+    #  ansible.builtin.file:
+    #    path: "{{ venv_dir }}"
+    #    state: directory
+    #    mode: '0755'
+
+    - name: Create virtual environment
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ venv_dir }}"
+        creates: "{{ venv_dir }}/bin/activate"
+
+    - name: Create a temporary folder
+      tempfile:
+        state: directory
+        suffix: _dash_install_tmp
+      register: tmp_folder
+
+    - name: Unarchive app bundle in a tmp dir
+      ansible.builtin.unarchive:
+        src: "{{ packages_dir }}/{{ app_id }}.bundle.{{ app_version }}.tar.gz"
+        dest: "{{ tmp_folder.path }}"
+        remote_src: yes # file is already on the remote machine
+        mode: "0755"
+
+    - name: Install Python dependencies from the bundle
+      ansible.builtin.shell:
+        cmd: "{{ app_dir }}/venv/bin/pip install --no-index --find-links=./packages -r ./requirements.txt"
+        chdir: "{{ tmp_folder.path }}"
+
+    - name: Delete temporary install folder
+      file:
+        path: "{{ tmp_folder.path }}"
+        state: absent
+
+    - name: Create dash-server.start.sh
+      become: true
+      template:
+        src: "{{ ops_working_dir }}/ansible/templates/dash-server.start.sh.j2"
+        dest: /usr/local/bin/dash-server.start.sh
+        mode: "0755"
+
+    - name: Create systemd config file
+      become: true
+      template:
+        src: "{{ ops_working_dir }}/ansible/templates/dash.service.j2"
+        dest: /etc/systemd/system/dash.service
+        mode: "0644"
+
+    - name: Enable and restart dash service
+      become: true
+      systemd:
+        name: dash
+        state: restarted
+        enabled: yes
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes

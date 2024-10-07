@@ -1,0 +1,42 @@
+---
+- name: Install required packages for qemu/ansible
+  hosts: all:!hypervisor
+  become: true
+
+  handlers:
+    - name: restart ssh
+      service: name=ssh state=restarted
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name: rsync,libvirt-dev,pipx
+        state: present
+
+    - name: Add pipx installed apps in PATH 
+      ansible.builtin.command:
+        cmd: "pipx ensurepath"
+
+    - name: Update SSH configuration to be more secure.
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+        validate: "/usr/sbin/sshd -t -f %s"
+      with_items:
+        - regexp: "^PasswordAuthentication"
+          line: "PasswordAuthentication no"
+      notify: restart ssh
+    - name: Remove unused packages
+      package:
+        name:
+          - sendmail
+        state: absent
+        purge: yes
+
+    - include_tasks: "../tasks/update-hostname.yml"

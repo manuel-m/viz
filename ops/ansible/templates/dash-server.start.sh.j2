@@ -1,0 +1,32 @@
+#!/bin/bash
+
+APP_ID={{ app_id }}
+VENV_DIR={{ venv_dir }}
+FASTAPI_BIN=$VENV_DIR/bin/fastapi
+SITE_PACKAGES_DIR=$VENV_DIR/lib/python{{ python_version.split('.')[0] + '.' + python_version.split('.')[1] }}/site-packages
+
+APP_SCRIPT=$SITE_PACKAGES_DIR/viz/dash/api.py
+
+# Check if virtual environment exists
+if [ ! -d "$VENV_DIR" ]; then
+  echo "ERROR: Virtual environment not found at $VENV_DIR"
+  exit 1
+fi
+
+# Activate the virtual environment
+source $VENV_DIR/bin/activate
+
+# Check if FastAPI binary exists
+if [ ! -x "$FASTAPI_BIN" ]; then
+  echo "ERROR: FastAPI binary not found at $FASTAPI_BIN"
+  exit 1
+fi
+
+# Check if app module exists
+if [ ! -f "$APP_SCRIPT" ]; then
+  echo "ERROR: FastAPI app not found at $APP_SCRIPT"
+  exit 1
+fi
+
+# Run the FastAPI app
+exec $FASTAPI_BIN run $APP_SCRIPT

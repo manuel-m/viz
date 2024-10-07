@@ -1,0 +1,14 @@
+[hypervisor]
+hypervisor0 ansible_host=192.168.1.31 vizhostname=hypervisor0 
+
+[vizpypi]
+vizpypi0 ansible_host=192.168.122.42 vizhostname=vizpypi0
+
+[vizgw]
+#vizgw0 ansible_host=192.168.122.198 vizhostname=vizgw0
+
+[vizapp]
+vizapp0 ansible_host=192.168.122.161 vizhostname=vizapp0
+
+[vizrabbit]
+vizrabbit0 ansible_host=192.168.122.162 vizhostname=vizrabbit0

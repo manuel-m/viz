@@ -1,0 +1,15 @@
+---
+
+- name: Set the new hostname
+  ansible.builtin.hostname:
+    name: "{{ vizhostname }}"
+- name: Update /etc/hosts with new hostname
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ vizhostname }}"
+    state: present
+- name: Reboot the machine to apply hostname changes
+  ansible.builtin.reboot:
+    msg: "Rebooting after hostname change"
+    pre_reboot_delay: 5

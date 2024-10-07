@@ -1,0 +1,12 @@
+[Unit]
+Description=Devpi Server
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Restart=on-success
+ExecStart=/home/{{ devpi_user }}/venv/bin/devpi-server --port {{ devpi_port }} --serverdir /home/{{ devpi_user }}/devpi-server --host 0.0.0.0
+User=devpi
+
+[Install]
+WantedBy=multi-user.target

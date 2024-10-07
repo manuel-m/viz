@@ -1,0 +1,10 @@
+---
+app_dir: "/home/{{ opt_user }}/opt/{{ app_id }}"
+packages_dir: "/home/{{ ansible_user }}/w/opt/dist"
+venv_dir: "{{ app_dir }}/venv"
+ansible_env_path: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/.local/bin"
+ops_working_dir: "/home/{{ ansible_user }}/w/opt/{{ app_id }}"
+
+
+
+

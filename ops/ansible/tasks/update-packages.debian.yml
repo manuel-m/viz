@@ -1,0 +1,6 @@
+---
+
+- name: Update package lists (on Debian/Ubuntu)
+  become: yes
+  apt:
+    update_cache: yes

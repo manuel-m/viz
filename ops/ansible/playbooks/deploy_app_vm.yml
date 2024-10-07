@@ -1,0 +1,68 @@
+---
+
+- name: Deploy Python application on VM without internet
+  hosts: vizapp
+  tasks:
+    - include_tasks: "../tasks/variables.yml"
+    - include_tasks: "../tasks/update-packages.debian.yml"
+
+    - name: Install required packages
+      become: yes
+      apt:
+        name: libvirt-dev,python3-libvirt,python3-venv,python3-pip
+        state: latest
+        update_cache: yes
+    
+    - name: Build pipx list
+      command: pipx list
+      register: pipx_list
+      ignore_errors: true
+
+    - name: Ensure application directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/dist"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure virtualenv directory exists
+      ansible.builtin.file:
+        path: "{{ venv_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create virtual environment
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ venv_dir }}"
+        creates: "{{ venv_dir }}/bin/activate"
+
+    - name: Copy the archive file to the remote machine (force overwrite)
+      ansible.builtin.copy:
+        src: "{{ packages_dir }}/{{ app_id }}.bundle.{{ app_version }}.tar.gz"
+        dest: "{{ app_dir }}/dist/"
+        mode: '0644'
+        force: yes
+
+    - name: Clean the temp folder
+      ansible.builtin.file:
+        path: "{{ app_dir }}/tmp/"
+        state: absent        
+
+    - name: Recreate the temp folder
+      ansible.builtin.file:
+        path: "{{ app_dir }}/tmp/"
+        state: directory
+        mode: '0755'
+
+    - name: Unarchive the file on the remote machine
+      ansible.builtin.unarchive:
+        src: "{{ app_dir }}/dist/{{ app_id }}.bundle.{{ app_version }}.tar.gz"
+        dest: "{{ app_dir }}/tmp/"
+        remote_src: yes  # Indicates that the file is already on the remote machine
+        mode: '0755'
+
+    - name: Install Python dependencies from the bundle
+      ansible.builtin.shell:
+        cmd: "{{ app_dir }}/venv/bin/pip install --no-index --find-links=./packages -r ./requirements.txt"
+        chdir: "{{ app_dir }}/tmp"
+
+  

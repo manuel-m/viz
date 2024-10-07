@@ -1,0 +1,59 @@
+---
+- name: Install and configure devpi
+  become: true
+  hosts: vizpypi
+
+  tasks:
+    - name: Create devpi user
+      user:
+        name: "{{ devpi_user }}"
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Ensure python3-venv is installed
+      ansible.builtin.package:
+        name: python3-venv
+        state: present
+
+    - name: Create virtual environment for devpi
+      ansible.builtin.command:
+        cmd: python3 -m venv /home/{{ devpi_user }}/venv
+        creates: /home/{{ devpi_user }}/venv/bin/activate
+
+    - name: Install devpi
+      ansible.builtin.command:
+        cmd: /home/{{ devpi_user }}/venv/bin/pip install devpi-server devpi-client
+
+    - name: Initialize devpi server
+      ansible.builtin.command:
+        cmd: /home/{{ devpi_user }}/venv/bin/devpi-init --serverdir /home/{{ devpi_user }}/devpi-server
+      ignore_errors: yes
+
+    - name: Change owner of virtual environment
+      file:
+        path: /home/{{ devpi_user }}/
+        owner: "{{ devpi_user }}"
+        recurse: yes
+
+    - name: Create systemd service file
+      template:
+        src: templates/devpi.service.j2
+        dest: /etc/systemd/system/devpi.service
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Enable and start devpi service
+      systemd:
+        name: devpi
+        state: started
+        enabled: yes
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present        
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes

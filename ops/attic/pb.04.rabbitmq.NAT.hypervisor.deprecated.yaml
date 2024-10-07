@@ -1,0 +1,48 @@
+---
+- name: Configure libvirt hook for QEMU
+  hosts: hypervisor
+  become: yes
+  tasks:
+
+    - name: Ensure the hooks directory exists
+      file:
+        path: /etc/libvirt/hooks
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create or update the /etc/libvirt/hooks/qemu file
+      copy:
+        dest: /etc/libvirt/hooks/qemu
+        owner: root
+        group: root
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          if [ "${1}" = "broker" ]; then
+          
+            # Update the following variables to fit your setup
+            GUEST_IP={{rabbitmq_host}}
+            GUEST_PORT={{rabbitmq_port}}
+            HOST_PORT={{rabbitmq_port}}
+          
+            if [ "${2}" = "stopped" ] || [ "${2}" = "reconnect" ]; then
+              /sbin/iptables -D FORWARD -o virbr0 -p tcp -d $GUEST_IP --dport $GUEST_PORT -j ACCEPT
+              /sbin/iptables -t nat -D PREROUTING -p tcp --dport $HOST_PORT -j DNAT --to $GUEST_IP:$GUEST_PORT
+            fi
+            if [ "${2}" = "start" ] || [ "${2}" = "reconnect" ]; then
+              /sbin/iptables -I FORWARD -o virbr0 -p tcp -d $GUEST_IP --dport $GUEST_PORT -j ACCEPT
+              /sbin/iptables -t nat -I PREROUTING -p tcp --dport $HOST_PORT -j DNAT --to $GUEST_IP:$GUEST_PORT
+            fi
+          fi
+
+    - name: Ensure the script is executable
+      file:
+        path: /etc/libvirt/hooks/qemu
+        mode: '0755'
+
+    - name: Restart libvirt service
+      service:
+        name: libvirtd
+        state: restarted

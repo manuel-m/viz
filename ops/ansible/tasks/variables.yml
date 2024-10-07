@@ -1,0 +1,13 @@
+---
+- name: Include .env variables (generated)
+  include_vars:
+    file: "../vars/env.yml"
+- name: Include version
+  include_vars:
+    file: "../vars/version.yml"
+- name: Include global variables default (overridable)
+  include_vars:
+    file: "../defaults/main.yml"
+- name: Include global variables
+  include_vars:
+    file: "../vars/main.yml"

@@ -1,0 +1,62 @@
+---
+- name: Install and configure devpi
+  become: true
+  hosts: vizpypi
+
+  vars:
+      nginx_conf_path: "/etc/nginx/sites-available/devpi"
+      nginx_conf_link: "/etc/nginx/sites-enabled/devpi"
+
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Generate a self-signed certificate with OpenSSL
+      ansible.builtin.command: >
+        openssl req -new -x509 -nodes
+        -out /home/{{ devpi_user }}/devpi.crt
+        -keyout /home/{{ devpi_user }}/devpi.key
+        -days 365
+        -subj "/C=US/ST=SomeState/L=SomeCity/O={{ app_id }}/CN={{ ansible_host }}"
+      args:
+        creates: /home/{{ devpi_user }}/devpi.crt
+
+    - name: Ensure the devpi certificate has correct permissions
+      ansible.builtin.file:
+        path: "/home/{{ devpi_user }}/devpi.crt"
+        owner: "{{ devpi_user }}"
+        group: "{{ devpi_user }}"
+        mode: '0644'
+
+    - name: Ensure the devpi key has correct permissions
+      ansible.builtin.file:
+        path: "/home/{{ devpi_user }}/devpi.key"
+        owner: "{{ devpi_user }}"
+        group: "{{ devpi_user }}"
+        mode: '0600'        
+
+    - name: Create nginx config file
+      template:
+        src: templates/devpi.nginx.j2
+        dest: "{{ nginx_conf_path }}"
+        mode: "0644"
+
+    - name: Remove the default Nginx site configuration
+      ansible.builtin.file:
+        path: "/etc/nginx/sites-enabled/default"
+        state: absent
+
+    - name: Enable Nginx site configuration
+      ansible.builtin.file:
+        src: "{{ nginx_conf_path }}"
+        dest: "{{ nginx_conf_link }}"
+        state: link    
+
+    - name: Restart Nginx to apply configuration changes
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: yes            

@@ -1,0 +1,5 @@
+---
+app_id: viz
+
+ansible_python_interpreter: /usr/bin/python3.11
+dash_port: 8000

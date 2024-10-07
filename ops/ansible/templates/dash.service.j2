@@ -1,0 +1,15 @@
+[Unit]
+Description=Dash Server
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Restart=on-success
+WorkingDirectory={{ app_dir }}
+ExecStart=/usr/local/bin/dash-server.start.sh
+User={{ opt_user }}
+Restart=always
+Environment="CONF_PACKAGES_DIR={{ packages_dir }}"
+
+[Install]
+WantedBy=multi-user.target
