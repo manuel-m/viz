@@ -1,6 +1,9 @@
 import libvirt  # type: ignore
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pydantic import BaseModel
+
+import sys
 
 
 class LibvirtConf(BaseSettings):
@@ -8,6 +11,13 @@ class LibvirtConf(BaseSettings):
     hypervisor_host: str = "localhost"
 
     model_config = SettingsConfigDict(env_prefix="CONF_")
+
+
+class VmDomain(BaseModel):
+    ID: int
+    name: str
+    state: int
+    UUID: str
 
 
 class VmHandler:
@@ -18,15 +28,29 @@ class VmHandler:
         else:
             self.uri = f"qemu+ssh://{conf.libvirt_user}@{conf.hypervisor_host}/system"
 
-        self.conn = libvirt.openReadOnly(self.uri)
-        if self.conn == None:
-            print("Failed to open connection to the hypervisor")
-            exit(1)
+        self.conn = None
 
-    def list_domains(self) -> list[libvirt.virDomain]:
+        try:
+            self.conn = libvirt.openReadOnly(self.uri)
+        except libvirt.libvirtError as e:
+            print("Failed to open connection to the hypervisor", file=sys.stderr)
+            print(repr(e), file=sys.stderr)
+
+    def list_domains(self) -> list[VmDomain]:
+        if self.conn is None:
+            return []
+
         domains = self.conn.listAllDomains()
-        return domains
+        return [
+            VmDomain(
+                name=domain.name(),
+                ID=domain.ID(),
+                UUID=domain.UUIDString(),
+                state=domain.state()[1],
+            )
+            for domain in domains
+        ]
 
     def close(self) -> None:
-        if self.conn != None:
+        if self.conn is not None:
             self.conn.close()
