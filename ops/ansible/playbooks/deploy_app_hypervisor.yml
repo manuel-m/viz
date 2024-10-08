@@ -33,12 +33,6 @@
         path: "{{ venv_dir }}"
         state: absent
 
-    #- name: Ensure virtualenv directory exists
-    #  ansible.builtin.file:
-    #    path: "{{ venv_dir }}"
-    #    state: directory
-    #    mode: '0755'
-
     - name: Create virtual environment
       ansible.builtin.command:
         cmd: "python3 -m venv {{ venv_dir }}"
