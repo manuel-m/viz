@@ -18,3 +18,15 @@ systemd-cgls --cpu
 # scoped subprocess
 systemd-run --scope -p CPUQuota=20% /path/to/commands
 ```
+
+
+```
+#!/bin/bash
+
+start_time=$(date +%s.%N)  
+./mybinary            
+end_time=$(date +%s.%N)    
+
+elapsed=$(echo "$end_time - $start_time" | bc)  # Calcul du temps écoulé
+echo "Temps d'exécution : $elapsed secondes"
+```
