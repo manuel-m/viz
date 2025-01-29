@@ -10,12 +10,14 @@ class Event(Enum):
 
 transition_matrix = {
     #        REACH   UNREACH  SYNC   UNSYNC
-    "_1_1": ("R1_1", "U1U1", "R1S1", "_1U1"),
+    "_1_1": ("R1_1", "U1U1", "R1S1", "_1U1"), ###
     "U1_1": ("R1_1", "U1U1", "R0S1", "U1U1"),
     "U1U1": ("R1U1", "U1U1", "R0S1", "U1U1"),
     "_1U1": ("R1U1", "U1U1", "R1S1", "_1U1"),
     "R1_1": ("R1_1", "U1U1", "R1S1", "R1U1"),
     "R1U1": ("R1U1", "U1U1", "R1S1", "R1U1"),
+    "R0S1": ("R1S1", "U1U1", "R1S1", "R0U1"),
+    "R1S1": ("R1S1", "U1U1", "R1S1", "R1U1"), ###
 }
 
 
